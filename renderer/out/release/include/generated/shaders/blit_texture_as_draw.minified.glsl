@@ -1,0 +1,25 @@
+D1
+#ifdef USE_FILTERING
+q0 N(0,c,r0);
+#endif
+z1
+#ifdef VERTEX
+j3 k3 g4 h4 g1(c0)h1 p1(QE,c0,D,p,O){c O1;O1.x=(p&1)==0?-1.:1.;O1.y=(p&2)==0?-1.:1.;
+#ifdef USE_FILTERING
+L(r0,c);r0.x=O1.x*.5+.5;r0.y=O1.y*-.5+.5;W(r0);
+#endif
+g J=g(O1,0,1);l1(J);}
+#endif
+#ifdef FRAGMENT
+W2 z2(l3,w6,DD);X2
+#ifdef USE_FILTERING
+i4 A3(l3,x6,Sd)j4
+#endif
+U1(i,UD){i q9;
+#ifdef USE_FILTERING
+I(r0,c);q9=d2(DD,Sd,r0,.0);
+#else
+q9=G1(DD,Y(floor(v0.xy)));
+#endif
+V1(q9);}
+#endif

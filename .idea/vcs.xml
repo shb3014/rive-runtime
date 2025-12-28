@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/dependencies/premake-core" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/Tehreer_SheenBidi_v2.6" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rive-app_harfbuzz_rive_10.1.0" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rive-app_miniaudio_rive_changes_5" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/dependencies/rive-app_yoga_rive_changes_v2_0_1_2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/Tehreer_SheenBidi_v2.6" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/dabeaz_ply_3.11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/glennrp_libpng_libpng16" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/glfw_glfw_3.4" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/madler_zlib_v1.3.1" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/rive-app_harfbuzz_rive_10.1.0" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/rive-app_libjpeg_v9f" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/rive-app_miniaudio_rive_changes_5" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/rive-app_yoga_rive_changes_v2_0_1_2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/renderer/dependencies/webmproject_libwebp_v1.4.0" vcs="Git" />
+  </component>
+</project>

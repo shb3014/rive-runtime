@@ -1,0 +1,18 @@
+// Alternative version using Atomic mode (most compatible)
+// Replace the frameDesc section with this if MSAA doesn't work:
+
+// Setup frame - use atomic mode (most compatible)
+RenderContext::FrameDescriptor frameDesc = {
+    .renderTargetWidth = m_width,
+    .renderTargetHeight = m_height,
+    .clearColor = 0xff404040,
+    .msaaSampleCount = 1, // Atomic mode requires sample count  = 1
+    .disableRasterOrdering = true, // Force atomic/MSAA path
+};
+
+// Notes:
+// - Atomic mode is the most compatible but slowest
+// - It works on almost all OpenGL ES 3.0+ implementations
+// - Panfrost should handle this without issues
+// - Performance will be lower than PLS but should work correctly
+

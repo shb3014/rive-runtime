@@ -1,0 +1,20 @@
+# Build artifacts
+bin/
+obj/
+*.make
+Makefile
+
+# Binary
+rk3566_player
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+

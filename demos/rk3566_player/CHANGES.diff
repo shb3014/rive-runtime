@@ -1,0 +1,53 @@
+--- rk3566_drm_player.cpp.orig	2025-12-23 00:00:00.000000000 +0000
++++ rk3566_drm_player.cpp	2025-12-24 00:00:00.000000000 +0000
+@@ -10,6 +10,7 @@
+ #include "rive/animation/state_machine_instance.hpp"
+ #include "rive/renderer/rive_renderer.hpp"
+ #include "rive/renderer/gl/render_context_gl_impl.hpp"
++#include "rive/renderer/gl/render_target_gl.hpp"
+ #include "rive/math/aabb.hpp"
+ 
+ // Our `librive_pls_renderer.a` is built on Linux with `RIVE_DESKTOP_GL`, which
+@@ -101,6 +102,17 @@
+ 
+         std::cout << "Rive renderer initialized" << std::endl;
+ 
++        // Create render target for the default framebuffer (ID 0)
++        // Query the sample count from the current framebuffer
++        GLint sampleCount = 0;
++        glGetIntegerv(GL_SAMPLES, &sampleCount);
++        std::cout << "Creating render target: " << m_width << "x" << m_height 
++                  << " (MSAA: " << sampleCount << "x)" << std::endl;
++        m_renderTarget = make_rcp<FramebufferRenderTargetGL>(
++            m_width,
++            m_height,
++            0,  // Use framebuffer 0 (default framebuffer)
++            sampleCount);
++
+         // Load .riv file
+         std::cout << "\nLoading Rive file: " << rivPath << std::endl;
+         if (!loadRiveFile(rivPath))
+@@ -296,9 +308,9 @@
+ 
+         renderer->restore();
+ 
+-        // Flush renderer - skip for now to test rendering without flush
+-        std::cout << "[DEBUG] renderFrame: would flush here (skipping)" << std::endl;
+-        // m_renderContext->flush({});
++        // Flush renderer - submit GPU commands
++        std::cout << "[DEBUG] renderFrame: flushing" << std::endl;
++        m_renderContext->flush({.renderTarget = m_renderTarget.get()});
+         std::cout << "[DEBUG] renderFrame: after flush skip" << std::endl;
+ 
+         // Finish GL commands
+@@ -313,6 +325,7 @@
+ private:
+     std::unique_ptr<rive_rk3566::DRMEGLContext> m_drmContext;
+     std::unique_ptr<RenderContext> m_renderContext;
++    rcp<RenderTarget> m_renderTarget;
+     rcp<File> m_file;
+     std::unique_ptr<ArtboardInstance> m_artboard;
+     std::unique_ptr<Scene> m_scene;
+
+
+
