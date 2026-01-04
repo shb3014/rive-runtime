@@ -87,11 +87,10 @@ public:
                       << std::endl;
             return false;
         }
-        // Use fallback rendering path for Panfrost compatibility
-        // Panfrost doesn't fully support all PLS features yet
-        m_renderContext = RenderContextGLImpl::MakeContext(
-            {.disablePixelLocalStorage = true,
-             .disableFragmentShaderInterlock = true});
+        // Use default renderer settings. With Mesa 26.0+ Panfrost now supports
+        // GL_EXT_shader_pixel_local_storage (see Mesa commit 298ad17b81e), so
+        // we should NOT force the atomic/MSAA fallback path here.
+        m_renderContext = RenderContextGLImpl::MakeContext({});
 
         if (!m_renderContext)
         {
@@ -268,14 +267,14 @@ private:
         auto renderer = std::make_unique<RiveRenderer>(m_renderContext.get());
         std::cout << "[DEBUG] renderFrame: renderer created" << std::endl;
 
-        // Setup frame - use atomic mode (most compatible for Panfrost)
+        // Setup frame. With PLS available, do not force MSAA/atomic fallback.
         RenderContext::FrameDescriptor frameDesc = {
             .renderTargetWidth = m_width,
             .renderTargetHeight = m_height,
             .clearColor = 0xff404040, // Dark gray background
-            .msaaSampleCount = 1, // Atomic mode requires sample count = 1
-            .disableRasterOrdering = true, // Force atomic/MSAA path
-            .clockwiseFillOverride = true, // Emulate clockwise atomic mode
+            .msaaSampleCount = 0,
+            .disableRasterOrdering = false,
+            .clockwiseFillOverride = false,
         };
 
         // Begin frame
