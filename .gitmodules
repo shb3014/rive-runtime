@@ -1,0 +1,63 @@
+[submodule "build/dependencies/premake-core"]
+	path = build/dependencies/premake-core
+	url = https://github.com/premake/premake-core.git
+
+[submodule "dependencies/Tehreer_SheenBidi_v2.6"]
+	path = dependencies/Tehreer_SheenBidi_v2.6
+	url = https://github.com/Tehreer/SheenBidi.git
+
+[submodule "dependencies/rive-app_harfbuzz_rive_10.1.0"]
+	path = dependencies/rive-app_harfbuzz_rive_10.1.0
+	url = https://github.com/rive-app/harfbuzz.git
+
+[submodule "dependencies/rive-app_miniaudio_rive_changes_5"]
+	path = dependencies/rive-app_miniaudio_rive_changes_5
+	url = https://github.com/rive-app/miniaudio.git
+
+[submodule "dependencies/rive-app_yoga_rive_changes_v2_0_1_2"]
+	path = dependencies/rive-app_yoga_rive_changes_v2_0_1_2
+	url = https://github.com/rive-app/yoga.git
+
+[submodule "mesa"]
+	path = mesa
+	url = https://gitlab.freedesktop.org/mesa/mesa.git
+
+[submodule "renderer/dependencies/Tehreer_SheenBidi_v2.6"]
+	path = renderer/dependencies/Tehreer_SheenBidi_v2.6
+	url = https://github.com/Tehreer/SheenBidi.git
+
+[submodule "renderer/dependencies/dabeaz_ply_3.11"]
+	path = renderer/dependencies/dabeaz_ply_3.11
+	url = https://github.com/dabeaz/ply.git
+
+[submodule "renderer/dependencies/glennrp_libpng_libpng16"]
+	path = renderer/dependencies/glennrp_libpng_libpng16
+	url = https://github.com/glennrp/libpng.git
+
+[submodule "renderer/dependencies/glfw_glfw_3.4"]
+	path = renderer/dependencies/glfw_glfw_3.4
+	url = https://github.com/glfw/glfw.git
+
+[submodule "renderer/dependencies/madler_zlib_v1.3.1"]
+	path = renderer/dependencies/madler_zlib_v1.3.1
+	url = https://github.com/madler/zlib.git
+
+[submodule "renderer/dependencies/rive-app_harfbuzz_rive_10.1.0"]
+	path = renderer/dependencies/rive-app_harfbuzz_rive_10.1.0
+	url = https://github.com/rive-app/harfbuzz.git
+
+[submodule "renderer/dependencies/rive-app_libjpeg_v9f"]
+	path = renderer/dependencies/rive-app_libjpeg_v9f
+	url = https://github.com/rive-app/libjpeg.git
+
+[submodule "renderer/dependencies/rive-app_miniaudio_rive_changes_5"]
+	path = renderer/dependencies/rive-app_miniaudio_rive_changes_5
+	url = https://github.com/rive-app/miniaudio.git
+
+[submodule "renderer/dependencies/rive-app_yoga_rive_changes_v2_0_1_2"]
+	path = renderer/dependencies/rive-app_yoga_rive_changes_v2_0_1_2
+	url = https://github.com/rive-app/yoga.git
+
+[submodule "renderer/dependencies/webmproject_libwebp_v1.4.0"]
+	path = renderer/dependencies/webmproject_libwebp_v1.4.0
+	url = https://github.com/webmproject/libwebp.git
