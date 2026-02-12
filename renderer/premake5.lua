@@ -177,6 +177,67 @@ if not _OPTIONS['with-webgpu'] then
             buildoutputs({ '%{cfg.targetdir}/%{file.name}' })
         end
     end
+
+    project('vk_headless_player')
+    do
+        dependson('rive')
+
+        kind('ConsoleApp')
+        language('C++')
+        cppdialect('C++17')
+        linkgroups('On')
+
+        includedirs({
+            'include',
+            RIVE_RUNTIME_DIR .. '/include',
+            RIVE_RUNTIME_DIR .. '/renderer/src',
+            -- vk-bootstrap headers live under renderer/rive_vk_bootstrap/include.
+            'rive_vk_bootstrap/include',
+        })
+
+        externalincludedirs({
+            yoga,
+        })
+
+        files({
+            'vk_headless_player/**.cpp',
+            'vk_headless_player/**.h**',
+        })
+
+        -- Put core renderer libs early; linkgroups('On') ensures ld will resolve
+        -- circular deps across static archives.
+        links({
+            'rive_pls_renderer',
+            'rive',
+            'rive_decoders',
+            'libwebp',
+            'rive_harfbuzz',
+            'rive_sheenbidi',
+            'rive_yoga',
+        })
+        filter({ 'options:not no_rive_png' })
+        do
+            -- libpng depends on zlib; keep zlib after libpng unless linkgroups is on.
+            links({ 'libpng', 'zlib' })
+        end
+        filter({ 'options:not no_rive_jpeg' })
+        do
+            links({ 'libjpeg' })
+        end
+        filter({})
+
+        if _OPTIONS['with_vulkan'] then
+            -- Compile vk-bootstrap sources into this target and wire up Vulkan headers.
+            dofile('rive_vk_bootstrap/bootstrap_project.lua')
+            links({ 'vulkan' })
+        end
+
+        filter('system:linux')
+        do
+            links({ 'pthread', 'dl', 'm' })
+        end
+        filter({})
+    end
 end
 
 if _OPTIONS['with-webgpu'] or _OPTIONS['with-dawn'] then

@@ -4,6 +4,9 @@
 
 #include "rive/renderer/gl/render_context_gl_impl.hpp"
 
+#include <cstdlib>
+#include <iostream>
+
 #include "rive/renderer/gl/render_buffer_gl_impl.hpp"
 #include "rive/renderer/gl/render_target_gl.hpp"
 #include "rive/renderer/draw.hpp"
@@ -1803,6 +1806,17 @@ void RenderContextGLImpl::flush(const FlushDescriptor& desc)
                                     0,
                                     instanceCount);
         }
+
+        // MALI-G52 WORKAROUND: Ensure tessellation texture writes are visible
+        // before path shaders read from it. Without this barrier, Mali-G52 
+        // exhibits cache coherency issues resulting in partial path rendering.
+#ifndef RIVE_WEBGL
+        if (m_capabilities.isMali)
+        {
+            glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT | 
+                           GL_FRAMEBUFFER_BARRIER_BIT);
+        }
+#endif
     }
 
     // Render the atlas if we have any offscreen feathers.
@@ -2350,7 +2364,15 @@ void RenderContextGLImpl::flush(const FlushDescriptor& desc)
 
     // Various Android vendors experience synchronization issues with multiple
     // flushes per frame if we don't call glFlush in between.
-    glFlush();
+    //
+    // For benchmarking and performance tuning, allow opting out:
+    //   RIVE_GL_FLUSH=0  -> skip glFlush()
+    //
+    // NOTE: Default behavior remains unchanged (we still glFlush()).
+    if (const char* v = std::getenv("RIVE_GL_FLUSH"); v == nullptr || v[0] != '0')
+    {
+        glFlush();
+    }
 
 #ifndef RIVE_WEBGL
     // ARM Mali-G78 also needs a memory barrier sometimes to ensure a resolve of
@@ -2906,6 +2928,14 @@ std::unique_ptr<RenderContext> RenderContextGLImpl::MakeContext(
     {
         capabilities.needsFloatingPointTessellationTexture = true;
     }
+    // WORKAROUND: Mali-G52 r1 (Panfrost) has issues with RGBA32F FBO attachments.
+    // Force RGBA32UI tessellation texture even without EXT_color_buffer_integer.
+    else if (!capabilities.EXT_color_buffer_integer &&
+             capabilities.EXT_color_buffer_float &&
+             strstr(rendererString, "Mali-G52 r1") != nullptr)
+    {
+        capabilities.needsFloatingPointTessellationTexture = false;  // Force RGBA32UI
+    }
     else
     {
         capabilities.needsFloatingPointTessellationTexture = false;
@@ -2957,6 +2987,18 @@ std::unique_ptr<RenderContext> RenderContextGLImpl::MakeContext(
             }
         }
 #else
+        // Non-Android platforms (e.g. Linux GLES): prefer EXT_shader_pixel_local_storage
+        // when available (Mesa/Panfrost, etc).
+        if (capabilities.EXT_shader_pixel_local_storage &&
+            (capabilities.ARM_shader_framebuffer_fetch ||
+             capabilities.EXT_shader_framebuffer_fetch))
+        {
+            return MakeContext(rendererString,
+                               capabilities,
+                               MakePLSImplEXTNative(capabilities),
+                               contextOptions.shaderCompilationMode);
+        }
+
         if (capabilities.ANGLE_shader_pixel_local_storage_coherent)
         {
             // EXT_shader_framebuffer_fetch is costly on Qualcomm, with or

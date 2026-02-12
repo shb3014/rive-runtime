@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cerrno>
 #include <iostream>
+#include <cstdlib>
 
 namespace rive_rk3566
 {
@@ -323,8 +324,19 @@ bool DRMEGLContext::initEGL()
         return false;
     }
 
-    // Enable VSync
-    eglSwapInterval(m_eglDisplay, 1);
+    // VSync control (default ON). Set RIVE_VSYNC=0 to disable and measure
+    // uncapped throughput.
+    int swapInterval = 1;
+    if (const char* v = std::getenv("RIVE_VSYNC"))
+    {
+        // Treat empty as enabled; treat "0"/"false"/"no"/"off" as disabled.
+        if (*v != '\0' && (!strcasecmp(v, "0") || !strcasecmp(v, "false") ||
+                           !strcasecmp(v, "no") || !strcasecmp(v, "off")))
+        {
+            swapInterval = 0;
+        }
+    }
+    eglSwapInterval(m_eglDisplay, swapInterval);
 
     return true;
 }

@@ -145,7 +145,7 @@ Press `Ctrl+C` to quit.
 
 The RK3566's Mali G52 GPU supports:
 - OpenGL ES 3.2
-- Vulkan 1.1
+- Vulkan in hardware, but **PanVK on Mali‑G52 commonly reports Vulkan 1.0.x** (and Rive’s Vulkan backend requires Vulkan ≥ 1.1)
 - Hardware-accelerated vector graphics
 
 ### Optimization Tips

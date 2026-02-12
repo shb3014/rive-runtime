@@ -90,7 +90,14 @@ void main()
 #endif
 
 #ifdef @STORE_COLOR
-    fragColor = colorBuffer;
+    // DEBUG: Force visible output to verify shader runs
+    // If you see magenta, shader runs but PLS is zero/empty
+    // If you see proper colors, PLS load works
+    if (length(colorBuffer.rgb) < 0.01) {
+        fragColor = vec4(1.0, 0.0, 1.0, 1.0);  // Magenta = PLS empty!
+    } else {
+        fragColor = colorBuffer;  // Normal path
+    }
 #endif
 }
 

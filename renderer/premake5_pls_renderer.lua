@@ -250,6 +250,7 @@ do
         files({
             'src/gl/pls_impl_webgl.cpp', -- Emulate WebGL with ANGLE.
             'src/gl/pls_impl_rw_texture.cpp',
+            'src/gl/pls_impl_ext_native.cpp', -- For GLES with EXT_shader_pixel_local_storage
             'glad/src/egl.c',
             'glad/src/gles2.c',
             'glad/glad_custom.c',

@@ -199,6 +199,10 @@ struct GLCapabilities
     bool EXT_clip_cull_distance : 1;
     bool EXT_color_buffer_half_float : 1;
     bool EXT_color_buffer_float : 1;
+    // Rendering to integer color attachments (used by tessellation texture when
+    // not using floating-point). If this is missing, using an integer render
+    // target for tessellation can lead to undefined/driver-specific behavior.
+    bool EXT_color_buffer_integer : 1;
     bool EXT_float_blend : 1;
     bool EXT_multisampled_render_to_texture : 1;
     bool EXT_shader_framebuffer_fetch : 1;

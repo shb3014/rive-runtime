@@ -18,7 +18,6 @@ fi
 
 RK3566_IP="$1"
 RK3566_USER="${RK3566_USER:-ubuntu}"
-RK3566_PASS="${RK3566_PASS:-shb084ww}"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SYSROOT_DIR="${2:-$SCRIPT_DIR/rk3566_sysroot}"
 
@@ -33,7 +32,7 @@ mkdir -p "$SYSROOT_DIR/usr/lib/aarch64-linux-gnu"
 mkdir -p "$SYSROOT_DIR/lib/aarch64-linux-gnu"
 
 echo -e "${YELLOW}Testing SSH connection...${NC}"
-if ! sshpass -p "$RK3566_PASS" ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no $RK3566_USER@$RK3566_IP "echo 'Connection successful'"; then
+if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no $RK3566_USER@$RK3566_IP "echo 'Connection successful'"; then
     echo -e "${RED}ERROR: Cannot connect to $RK3566_USER@$RK3566_IP${NC}"
     echo "Please ensure:"
     echo "  1. RK3566 is powered on and connected to network"
@@ -47,24 +46,24 @@ echo ""
 
 # Copy libraries
 echo -e "${YELLOW}Copying libraries from Ubuntu 24.04...${NC}"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/lib/aarch64-linux-gnu/{libEGL*.so*,libGLESv*.so*,libdrm*.so*,libgbm*.so*,libpthread.so*,libc.so*,libm.so*,libdl.so*,librt.so*} "$SYSROOT_DIR/usr/lib/aarch64-linux-gnu/" 2>/dev/null || echo "Some libraries not found (this may be OK)"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/lib/aarch64-linux-gnu/{libEGL*.so*,libGLESv*.so*,libdrm*.so*,libgbm*.so*,libpthread.so*,libc.so*,libm.so*,libdl.so*,librt.so*} "$SYSROOT_DIR/usr/lib/aarch64-linux-gnu/" 2>/dev/null || echo "Some libraries not found (this may be OK)"
 
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/lib/aarch64-linux-gnu/{libc.so*,libm.so*,libpthread.so*,libdl.so*,librt.so*,ld-linux-aarch64.so*} "$SYSROOT_DIR/lib/aarch64-linux-gnu/" 2>/dev/null || echo "Some libraries not found (this may be OK)"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/lib/aarch64-linux-gnu/{libc.so*,libm.so*,libpthread.so*,libdl.so*,librt.so*,ld-linux-aarch64.so*} "$SYSROOT_DIR/lib/aarch64-linux-gnu/" 2>/dev/null || echo "Some libraries not found (this may be OK)"
 
 # Copy headers
 echo -e "${YELLOW}Copying headers from RK3566...${NC}"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/EGL "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "EGL headers not found"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/GLES2 "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "GLES2 headers not found"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/GLES3 "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "GLES3 headers not found"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/KHR "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "KHR headers not found"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/drm "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "DRM headers not found"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/libdrm "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "libdrm headers not found"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no $RK3566_USER@$RK3566_IP:/usr/include/gbm.h "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "gbm.h not found"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/EGL "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "EGL headers not found"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/GLES2 "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "GLES2 headers not found"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/GLES3 "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "GLES3 headers not found"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/KHR "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "KHR headers not found"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/drm "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "DRM headers not found"
+scp -o StrictHostKeyChecking=no -r $RK3566_USER@$RK3566_IP:/usr/include/libdrm "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "libdrm headers not found"
+scp -o StrictHostKeyChecking=no $RK3566_USER@$RK3566_IP:/usr/include/gbm.h "$SYSROOT_DIR/usr/include/" 2>/dev/null || echo "gbm.h not found"
 
 # Copy pkg-config files if available
 echo -e "${YELLOW}Copying pkg-config files...${NC}"
 mkdir -p "$SYSROOT_DIR/usr/lib/pkgconfig"
-sshpass -p "$RK3566_PASS" scp -o StrictHostKeyChecking=no $RK3566_USER@$RK3566_IP:/usr/lib/aarch64-linux-gnu/pkgconfig/{egl.pc,glesv2.pc,gbm.pc,libdrm.pc} "$SYSROOT_DIR/usr/lib/pkgconfig/" 2>/dev/null || echo "Some pkg-config files not found (this may be OK)"
+scp -o StrictHostKeyChecking=no $RK3566_USER@$RK3566_IP:/usr/lib/aarch64-linux-gnu/pkgconfig/{egl.pc,glesv2.pc,gbm.pc,libdrm.pc} "$SYSROOT_DIR/usr/lib/pkgconfig/" 2>/dev/null || echo "Some pkg-config files not found (this may be OK)"
 
 echo ""
 echo -e "${GREEN}=== Sysroot setup complete ===${NC}"

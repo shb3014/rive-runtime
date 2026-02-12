@@ -13,6 +13,7 @@
 #include "gradient.hpp"
 #include "shaders/constants.glsl"
 #include "rive/profiler/profiler_macros.h"
+#include <cstdlib>
 
 namespace rive::gpu
 {
@@ -28,12 +29,28 @@ constexpr static size_t kMaxCurveSubdivisions =
     (kMaxParametricSegments + kPatchSegmentCountExcludingJoin - 1) /
     kPatchSegmentCountExcludingJoin;
 
+// Get parametric precision from environment variable
+// Default is 4 (1/4 pixel precision)
+// Lower values = coarser tessellation = fewer triangles = faster
+// Higher values = finer tessellation = more triangles = slower but better quality
+static float get_parametric_precision()
+{
+    static float precision = -1.0f;
+    if (precision < 0.0f)
+    {
+        const char* env = std::getenv("RIVE_TESS_PRECISION");
+        precision = (env && *env) ? std::atof(env) : static_cast<float>(kParametricPrecision);
+        precision = std::max(0.25f, std::min(precision, 16.0f)); // Clamp to reasonable range
+    }
+    return precision;
+}
+
 static uint32_t find_outer_cubic_subdivision_count(
     const Vec2D pts[],
     const wangs_formula::VectorXform& vectorXform)
 {
     float numSubdivisions =
-        ceilf(wangs_formula::cubic(pts, kParametricPrecision, vectorXform) *
+        ceilf(wangs_formula::cubic(pts, get_parametric_precision(), vectorXform) *
               (1.f / kPatchSegmentCountExcludingJoin));
     return static_cast<uint32_t>(
         math::clamp(numSubdivisions, 1, kMaxCurveSubdivisions));
@@ -818,7 +835,7 @@ void PathDraw::initForMidpointFan(RenderContext* context,
     m_parametricSegmentCounts =
         context->parametricSegmentCountsAllocator().alloc(maxPaddedCurves);
 
-    float parametricPrecision = gpu::kParametricPrecision;
+    float parametricPrecision = get_parametric_precision();
     if (m_featherRadius > 1)
     {
         // Once the blur radius is above ~50 pixels, we don't have to tessellate

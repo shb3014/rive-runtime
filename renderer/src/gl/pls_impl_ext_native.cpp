@@ -185,8 +185,7 @@ public:
             // to the main framebuffer.
             LoadStoreActionsEXT actions = LoadStoreActionsEXT::storeColor;
             m_state->bindProgram(
-                findLoadStoreProgram(actions, desc.combinedShaderFeatures)
-                    .id());
+                findLoadStoreProgram(actions, desc.combinedShaderFeatures).id());
             m_state->bindVAO(m_plsLoadStoreVAO);
             m_state->setPipelineState(gpu::COLOR_ONLY_PIPELINE_STATE);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

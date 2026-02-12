@@ -130,5 +130,8 @@ if os.getenv('CC') then
         '-Wl,-rpath-link,' .. sysroot .. '/usr/lib/aarch64-linux-gnu',
         '-Wl,--dynamic-linker=/lib/ld-linux-aarch64.so.1'
     })
+else
+    -- Native build: use clang for LTO support
+    toolset('clang')
 end
 
