@@ -112,7 +112,7 @@ sshpass -p 'shb084ww' rsync -avz --delete \
 
 ---
 
-## 4. Run the Player
+## 4. Run the Generic Player
 
 ### Standard run (500x500, PLS, Panfrost)
 ```bash
@@ -158,7 +158,117 @@ sshpass -p 'shb084ww' ssh ubuntu@192.168.1.45 \
 
 ---
 
-## 5. Render Resolution Knobs
+## 5. Tracker Demos (SoulCam + Rive)
+
+See `docs/TrackerDemo.md` for full details on each demo.
+
+### Common env setup (add to every sudo command)
+```bash
+export LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH
+export LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri
+```
+
+### Build tracker demos (on device)
+```bash
+cd ~/rive-runtime/demos/rk3566_player
+bash build_universal_demo.sh    # universal (auto-detects any .riv)
+bash build_avatar_demo.sh       # avatar / anime-girl / little-boy
+bash build_face_demo.sh         # face tracker
+bash build_owl_demo_simple.sh   # owl
+```
+
+### Start SoulCam (needed for all tracker demos)
+```bash
+cd ~/SoulCam
+sudo ./build/soulcam --ai --model YoloV8-NPU/rk3566/yolov8n.rknn
+```
+
+### Run Avatar Tracker (overlay, 360x360 for 60 FPS)
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/avatar_tracker_demo \
+     --overlay --resolution 360 ~/avatar.riv
+```
+
+### Run Avatar Tracker with timing diagnostics
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/avatar_tracker_demo \
+     --overlay --timing --resolution 500 ~/avatar.riv
+```
+
+### Run Avatar Tracker with async flip (no vsync, may tear)
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/avatar_tracker_demo \
+     --overlay --async-flip --timing --resolution 300 ~/avatar.riv
+```
+
+### Run with other .riv files (same binary)
+```bash
+# Anime Girl
+sudo ... avatar_tracker_demo --overlay ~/anime-girl.riv
+
+# Little Boy
+sudo ... avatar_tracker_demo --overlay ~/little-boy.riv
+```
+
+### Run Face Tracker
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/face_tracker_demo \
+     --resolution 500 ~/face-tracking-test.riv
+```
+
+### Run Owl Tracker
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/owl_tracker_demo \
+     ~/dress-up.riv /tmp/soulcam_scene.sock
+```
+
+### Run Universal Tracker (auto-detects control mode for any .riv)
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/universal_tracker_demo \
+     --resolution 500 ~/character-test.riv
+```
+
+### Inspect a .riv file (dump structure, no rendering)
+```bash
+sudo ... universal_tracker_demo --inspect ~/character-test.riv
+```
+
+### Stop a running demo (from host)
+```bash
+sshpass -p 'shb084ww' ssh ubuntu@192.168.1.45 \
+  "sudo killall avatar_tracker_demo face_tracker_demo owl_tracker_demo 2>/dev/null"
+```
+
+### Deploy updated source from host to device
+```bash
+cd ~/embeddedProjects/SoulCam/rive-runtime/demos/rk3566_player
+sshpass -p 'shb084ww' scp -o StrictHostKeyChecking=no \
+  avatar_tracker_demo.cpp drm_egl_context.h drm_egl_context.cpp \
+  ubuntu@192.168.1.45:~/rive-runtime/demos/rk3566_player/
+```
+
+### Force full rebuild (after drm_egl_context changes)
+```bash
+sshpass -p 'shb084ww' ssh ubuntu@192.168.1.45 \
+  'rm -f ~/rive-runtime/demos/rk3566_player/bin/release/drm_egl_context.o && \
+   cd ~/rive-runtime/demos/rk3566_player && bash build_avatar_demo.sh'
+```
+
+---
+
+## 6. Render Resolution Knobs (generic player)
 
 | Env var | Description |
 |---------|-------------|
@@ -183,7 +293,7 @@ done
 
 ---
 
-## 6. Diagnostics
+## 7. Diagnostics
 
 ### Check which DRM card is which
 ```bash
@@ -208,7 +318,9 @@ sudo cat /sys/kernel/debug/clk/clk_scmi_gpu/clk_rate
 
 ---
 
-## 7. Known-Good Baseline (dress-up.riv)
+## 8. Known-Good Baselines
+
+### dress-up.riv — rk3566_player (generic)
 
 | Resolution | FPS | Notes |
 |------------|-----|-------|
@@ -217,5 +329,15 @@ sudo cat /sys/kernel/debug/clk/clk_scmi_gpu/clk_rate
 | 500x500 | **~47** | Standard benchmark |
 | 600x600 | ~41 | |
 | 700x700 | ~33 | |
+
+### avatar.riv — avatar_tracker_demo (overlay mode)
+
+| Resolution | FPS | Notes |
+|------------|-----|-------|
+| 360x360 | 60 | Vsync cap |
+| 400x400 | 53 | |
+| 500x500 | **~39** | Standard benchmark |
+
+See `docs/FPS.md` for full benchmarks including async flip results.
 
 Stack: Mesa 26.1.0-devel Panfrost, EXT-native PLS, GPU @800MHz.
