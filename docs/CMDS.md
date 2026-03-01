@@ -177,10 +177,40 @@ bash build_face_demo.sh         # face tracker
 bash build_owl_demo_simple.sh   # owl
 ```
 
-### Start SoulCam (needed for all tracker demos)
+### Start SoulCam — person detection (default COCO, int8, ~22 FPS)
 ```bash
 cd ~/SoulCam
+sudo systemctl stop soulcam
 sudo ./build/soulcam --ai --model YoloV8-NPU/rk3566/yolov8n.rknn
+```
+
+### Start SoulCam — hand detection (fp16, ~6.6 FPS)
+```bash
+cd ~/SoulCam
+sudo systemctl stop soulcam
+sudo ./build/soulcam --ai \
+  --model /home/ubuntu/hand_yolov8n_fp16.rknn \
+  --labels hand --conf 0.3
+```
+
+> **Note:** `--ai` is required to enable the AI inference pipeline.
+> `--labels hand` tells SoulCam the model has a single class named "hand".
+> The default `soulcam.service` runs with `--snapshot` (no AI); stop it first.
+
+### Run Universal Tracker — person tracking (default)
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/universal_tracker_demo \
+     --resolution 500 ~/character-test.riv
+```
+
+### Run Universal Tracker — hand tracking
+```bash
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ~/rive-runtime/demos/rk3566_player/bin/release/universal_tracker_demo \
+     --target hand --resolution 500 ~/character-test.riv
 ```
 
 ### Run Avatar Tracker (overlay, 360x360 for 60 FPS)
@@ -199,23 +229,6 @@ sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
      --overlay --timing --resolution 500 ~/avatar.riv
 ```
 
-### Run Avatar Tracker with async flip (no vsync, may tear)
-```bash
-sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
-     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
-     ~/rive-runtime/demos/rk3566_player/bin/release/avatar_tracker_demo \
-     --overlay --async-flip --timing --resolution 300 ~/avatar.riv
-```
-
-### Run with other .riv files (same binary)
-```bash
-# Anime Girl
-sudo ... avatar_tracker_demo --overlay ~/anime-girl.riv
-
-# Little Boy
-sudo ... avatar_tracker_demo --overlay ~/little-boy.riv
-```
-
 ### Run Face Tracker
 ```bash
 sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
@@ -232,14 +245,6 @@ sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
      ~/dress-up.riv /tmp/soulcam_scene.sock
 ```
 
-### Run Universal Tracker (auto-detects control mode for any .riv)
-```bash
-sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
-     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
-     ~/rive-runtime/demos/rk3566_player/bin/release/universal_tracker_demo \
-     --resolution 500 ~/character-test.riv
-```
-
 ### Inspect a .riv file (dump structure, no rendering)
 ```bash
 sudo ... universal_tracker_demo --inspect ~/character-test.riv
@@ -248,14 +253,15 @@ sudo ... universal_tracker_demo --inspect ~/character-test.riv
 ### Stop a running demo (from host)
 ```bash
 sshpass -p 'shb084ww' ssh ubuntu@192.168.1.45 \
-  "sudo killall avatar_tracker_demo face_tracker_demo owl_tracker_demo 2>/dev/null"
+  "sudo killall universal_tracker_demo avatar_tracker_demo face_tracker_demo owl_tracker_demo 2>/dev/null"
 ```
 
-### Deploy updated source from host to device
+### Deploy updated demo source from host to device
 ```bash
 cd ~/embeddedProjects/SoulCam/rive-runtime/demos/rk3566_player
-sshpass -p 'shb084ww' scp -o StrictHostKeyChecking=no \
-  avatar_tracker_demo.cpp drm_egl_context.h drm_egl_context.cpp \
+sshpass -p 'shb084ww' scp \
+  universal_tracker_demo.cpp avatar_tracker_demo.cpp \
+  drm_egl_context.h drm_egl_context.cpp \
   ubuntu@192.168.1.45:~/rive-runtime/demos/rk3566_player/
 ```
 
@@ -263,7 +269,7 @@ sshpass -p 'shb084ww' scp -o StrictHostKeyChecking=no \
 ```bash
 sshpass -p 'shb084ww' ssh ubuntu@192.168.1.45 \
   'rm -f ~/rive-runtime/demos/rk3566_player/bin/release/drm_egl_context.o && \
-   cd ~/rive-runtime/demos/rk3566_player && bash build_avatar_demo.sh'
+   cd ~/rive-runtime/demos/rk3566_player && bash build_universal_demo.sh'
 ```
 
 ---
@@ -337,6 +343,14 @@ sudo cat /sys/kernel/debug/clk/clk_scmi_gpu/clk_rate
 | 360x360 | 60 | Vsync cap |
 | 400x400 | 53 | |
 | 500x500 | **~39** | Standard benchmark |
+
+### universal_tracker_demo
+
+| .riv file | Control mode | Render FPS | Notes |
+|-----------|-------------|------------|-------|
+| character-test.riv | pointerMove | ~55 | Hand tracking, mirrored |
+| dress-up.riv | look_dir | ~51 | Discrete direction |
+| avatar.riv | Joystick | ~55 | Continuous x/y |
 
 See `docs/FPS.md` for full benchmarks including async flip results.
 

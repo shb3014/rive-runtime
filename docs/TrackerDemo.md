@@ -1,8 +1,14 @@
 # Tracker Demos — SoulCam + Rive on RK3566
 
-Five demos that combine SoulCam's AI human detection with Rive animations.
-A camera detects humans (YOLOv8n on NPU), and the Rive character's eyes/face
-follow the detected person in real time.
+Five demos that combine SoulCam's AI detection with Rive animations.
+A camera detects objects (YOLOv8n on NPU), and the Rive character's eyes/face
+follow the detected target in real time.
+
+Supported detection targets:
+- **Person** — default COCO YOLOv8n (int8, ~22 FPS inference)
+- **Hand** — custom hand YOLOv8n (fp16, ~6.6 FPS inference)
+
+See `rknn/HAND_MODEL.md` for model building details.
 
 ---
 
@@ -21,12 +27,20 @@ follow the detected person in real time.
 ┌──────────────────────────────────────────────────────┐
 │                  Tracker Demo                        │
 │  1. Receive detection JSON                           │
-│  2. Extract person bounding box center               │
-│  3. Map to Rive control input (look_dir / Joystick   │
+│  2. Find best target by label (person / hand / ...)  │
+│  3. Extract tracking point (mirrored X)              │
+│  4. Map to Rive control input (look_dir / Joystick   │
 │     / pointerMove)                                   │
-│  4. Render Rive animation via DRM/EGL (Mali-G52)     │
+│  5. Render Rive animation via DRM/EGL (Mali-G52)     │
 └──────────────────────────────────────────────────────┘
 ```
+
+### Mirror behavior
+
+The camera acts as the character's eyes, so the X axis is **mirrored**
+(`cx = 640 - rawX`). When a hand appears on the camera's left, the
+character looks to its right — just like a mirror. This applies to all
+control modes (Joystick, look_dir, pointerMove).
 
 ---
 
@@ -34,6 +48,7 @@ follow the detected person in real time.
 
 | Demo | Rive file | Eye control | Tracking type | Build script |
 |------|-----------|-------------|---------------|-------------|
+| **Universal** | Any `.riv` | Auto-detect | Auto | `build_universal_demo.sh` |
 | Owl Tracker | `dress-up.riv` | `look_dir` (SMINumber) | Discrete (3 directions) | `build_owl_demo_simple.sh` |
 | Avatar Tracker | `avatar.riv` | Joystick (x/y) | Continuous | `build_avatar_demo.sh` |
 | Face Tracker | `face-tracking-test.riv` | `pointerMove()` | Continuous | `build_face_demo.sh` |
@@ -68,8 +83,9 @@ file and maps SoulCam human detection to the matching Rive input.
 | `--timing` | Print per-phase frame timing in FPS log |
 | `--inspect` | Dump artboard/state-machine info and exit |
 | `--socket PATH` | Scene socket path (default: `/tmp/soulcam_scene.sock`) |
+| `--target LABEL` | Detection label to track (default: `person`) |
 
-**Build & run:**
+**Build & run (person tracking):**
 ```bash
 cd ~/rive-runtime/demos/rk3566_player
 bash build_universal_demo.sh
@@ -78,6 +94,25 @@ sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
      LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
      ./bin/release/universal_tracker_demo --resolution 500 ~/character-test.riv
 ```
+
+**Hand tracking (requires hand detection model in SoulCam):**
+```bash
+# 1. Stop default SoulCam and start with hand model:
+cd ~/SoulCam && sudo systemctl stop soulcam
+sudo ./build/soulcam --ai \
+  --model /home/ubuntu/hand_yolov8n_fp16.rknn \
+  --labels hand --conf 0.3
+
+# 2. Run demo with --target hand:
+sudo LD_LIBRARY_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH \
+     LIBGL_DRIVERS_PATH=/opt/mesa-pls/lib/aarch64-linux-gnu/dri \
+     ./bin/release/universal_tracker_demo --target hand --resolution 500 ~/character-test.riv
+```
+
+> **Important:** The `--ai` flag is required to enable the AI inference
+> pipeline. Without it, SoulCam only starts the RTSP server with no detection.
+> The `--labels hand` flag tells SoulCam the model outputs a single class
+> named "hand" (instead of COCO's 80 classes).
 
 **Verified auto-detection results:**
 
@@ -260,14 +295,19 @@ model runs at 640x640 input resolution on the RK3566's RKNN NPU.
 ## Coordinate mapping
 
 ```
-AI frame (640x640) → Normalized [-1, 1] → Rive control input
+AI frame (640x640) → Mirror X → Normalize → Rive control input
+                     cx = 640 - rawX
 ```
+
+For "person" targets, the tracking point is estimated at the top 12% of
+the bounding box height (approximating face position). For other targets
+(e.g. "hand"), the bounding box center is used directly.
 
 | Demo | Mapping target |
 |------|---------------|
-| Owl | Discrete `look_dir` zones (left / center / right) |
-| Avatar | Joystick x/y in [-1, 1] range |
-| Face / Anime Girl / Little Boy | Artboard pixel coordinates via `pointerMove()` |
+| Owl / Universal (look_dir) | Discrete `look_dir` zones (left / center / right) |
+| Avatar / Universal (Joystick) | Joystick x/y in [-1, 1] range |
+| Face / Universal (pointerMove) | Artboard pixel coordinates via `pointerMove()` |
 
 ---
 
@@ -304,15 +344,39 @@ demos/rk3566_player/
 
 ## Starting SoulCam for detection
 
-The demos need SoulCam running with AI detection to produce tracking data:
+The demos need SoulCam running with `--ai` to produce tracking data.
+Always stop the default `soulcam.service` first (it runs without AI).
 
+### Person detection (default COCO model)
 ```bash
+sudo systemctl stop soulcam
 cd ~/SoulCam
 sudo ./build/soulcam --ai --model YoloV8-NPU/rk3566/yolov8n.rknn
 ```
+INT8 on NPU, ~44ms/frame (~22 FPS), 80 classes (COCO).
 
-SoulCam runs at ~22 FPS for detection (YOLOv8n INT8 on NPU), using ~11% CPU.
+### Hand detection (custom model)
+```bash
+sudo systemctl stop soulcam
+cd ~/SoulCam
+sudo ./build/soulcam --ai \
+  --model /home/ubuntu/hand_yolov8n_fp16.rknn \
+  --labels hand --conf 0.3
+```
+FP16 on NPU, ~150ms/frame (~6.6 FPS), 1 class ("hand").
+See `rknn/HAND_MODEL.md` for model conversion details and int8 status.
+
 Detection results are published to `/tmp/soulcam_scene.sock`.
+
+### Key SoulCam flags for AI
+
+| Flag | Description |
+|------|-------------|
+| `--ai` | **Required.** Enable AI inference pipeline on selfpath |
+| `--model PATH` | RKNN model file |
+| `--labels L` | Comma-separated class labels (e.g. `hand`). Empty = COCO 80 |
+| `--conf F` | Detection confidence threshold (default: 0.25) |
+| `-v` | Verbose logging (shows per-frame inference results) |
 
 ---
 

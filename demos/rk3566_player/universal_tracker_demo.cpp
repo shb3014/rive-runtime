@@ -342,6 +342,7 @@ public:
         m_renderHeight = h;
     }
     void setShowTiming(bool v) { m_showTiming = v; }
+    void setTargetLabel(const char* l) { m_targetLabel = l; }
 
     bool initialize(const char* rivPath, const char* socketPath,
                     bool inspectOnly)
@@ -822,13 +823,13 @@ private:
             m_hasNewDetection = true;
     }
 
-    Detection* findBestPerson()
+    Detection* findBestTarget()
     {
         Detection* best = nullptr;
         float bestConf = 0;
         for (auto& det : m_latestDetections.objects)
         {
-            if (det.label == "person" && det.conf > 0.3f &&
+            if (det.label == m_targetLabel && det.conf > 0.3f &&
                 det.conf > bestConf)
             {
                 best = &det;
@@ -836,6 +837,25 @@ private:
             }
         }
         return best;
+    }
+
+    // Estimate tracking point from a detection bounding box.
+    // For "person" targets: face sits at roughly the top 12% of the bbox.
+    // For other targets (e.g. "hand"): use bbox center directly.
+    // X is mirrored (640 - x) because the camera is the character's eyes,
+    // so left/right must be flipped like a mirror.
+    void estimateTrackingPoint(const Detection& det, float& cx, float& cy)
+    {
+        cx = 640.0f - (det.box.left + det.box.right) / 2.0f;
+        if (m_targetLabel == "person")
+        {
+            float h = static_cast<float>(det.box.bottom - det.box.top);
+            cy = det.box.top + h * 0.12f;
+        }
+        else
+        {
+            cy = (det.box.top + det.box.bottom) / 2.0f;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -849,14 +869,12 @@ private:
         if (m_hasNewDetection)
         {
             m_hasNewDetection = false;
-            Detection* person = findBestPerson();
+            Detection* person = findBestTarget();
 
             if (person)
             {
-                float centerX =
-                    (person->box.left + person->box.right) / 2.0f;
-                float centerY =
-                    (person->box.top + person->box.bottom) / 2.0f;
+                float centerX, centerY;
+                estimateTrackingPoint(*person, centerX, centerY);
 
                 m_targetGazeX =
                     std::clamp((centerX / 640.0f) * 2.0f - 1.0f, -1.0f, 1.0f);
@@ -913,13 +931,14 @@ private:
             return;
         m_hasNewDetection = false;
 
-        Detection* person = findBestPerson();
+        Detection* person = findBestTarget();
         float newDir = 0.0f;
 
         if (person)
         {
-            float normX =
-                ((person->box.left + person->box.right) / 2.0f) / 640.0f;
+            float faceX, faceY;
+            estimateTrackingPoint(*person, faceX, faceY);
+            float normX = faceX / 640.0f;
 
             if (normX < 0.33f)
                 newDir = 1.0f;
@@ -962,17 +981,15 @@ private:
         if (m_hasNewDetection)
         {
             m_hasNewDetection = false;
-            Detection* person = findBestPerson();
+            Detection* person = findBestTarget();
 
             if (person)
             {
-                float centerX =
-                    (person->box.left + person->box.right) / 2.0f;
-                float centerY =
-                    (person->box.top + person->box.bottom) / 2.0f;
+                float faceX, faceY;
+                estimateTrackingPoint(*person, faceX, faceY);
 
-                m_targetGazeX = (centerX / 640.0f) * m_abWidth;
-                m_targetGazeY = (centerY / 640.0f) * m_abHeight;
+                m_targetGazeX = (faceX / 640.0f) * m_abWidth;
+                m_targetGazeY = (faceY / 640.0f) * m_abHeight;
                 m_personVisible = true;
                 m_timeSinceLastPerson = 0.0f;
             }
@@ -1279,6 +1296,9 @@ private:
     std::vector<SMIBool*> m_presenceBoolInputs;
     int m_lastTriggerZone = 999;
 
+    // Detection target label
+    std::string m_targetLabel = "person";
+
     // Socket
     int m_sceneSocket = -1;
     DetectionData m_latestDetections;
@@ -1294,6 +1314,7 @@ int main(int argc, char* argv[])
     bool showTiming = false;
     const char* rivPath = nullptr;
     const char* socketPath = "/tmp/soulcam_scene.sock";
+    const char* targetLabel = "person";
     uint32_t renderW = 500, renderH = 500;
 
     for (int i = 1; i < argc; i++)
@@ -1304,6 +1325,8 @@ int main(int argc, char* argv[])
             showTiming = true;
         else if (strcmp(argv[i], "--socket") == 0 && i + 1 < argc)
             socketPath = argv[++i];
+        else if (strcmp(argv[i], "--target") == 0 && i + 1 < argc)
+            targetLabel = argv[++i];
         else if (strcmp(argv[i], "--resolution") == 0 && i + 1 < argc)
         {
             i++;
@@ -1333,6 +1356,8 @@ int main(int argc, char* argv[])
                   << "  --resolution   Render resolution (default: 500x500)\n"
                   << "  --socket       Scene socket path "
                      "(default: /tmp/soulcam_scene.sock)\n"
+                  << "  --target       Detection label to track "
+                     "(default: person)\n"
                   << "\nSet RIVE_VSYNC=0 to disable vsync.\n";
         return 1;
     }
@@ -1343,6 +1368,7 @@ int main(int argc, char* argv[])
     UniversalTrackerDemo demo;
     demo.setRenderSize(renderW, renderH);
     demo.setShowTiming(showTiming);
+    demo.setTargetLabel(targetLabel);
     if (!demo.initialize(rivPath, socketPath, inspectOnly))
     {
         if (inspectOnly)
