@@ -184,18 +184,64 @@ sudo systemctl stop soulcam
 sudo ./build/soulcam --ai --model YoloV8-NPU/rk3566/yolov8n.rknn
 ```
 
-### Start SoulCam — hand detection (fp16, ~6.6 FPS)
+### Start SoulCam — hand detection (INT8, recommended)
 ```bash
 cd ~/SoulCam
 sudo systemctl stop soulcam
 sudo ./build/soulcam --ai \
-  --model /home/ubuntu/hand_yolov8n_fp16.rknn \
-  --labels hand --conf 0.3
+  --model /home/ubuntu/models/hand_yolov8n_rk3566_i8_20260301.rknn \
+  --labels hand --conf 0.10
 ```
 
 > **Note:** `--ai` is required to enable the AI inference pipeline.
 > `--labels hand` tells SoulCam the model has a single class named "hand".
 > The default `soulcam.service` runs with `--snapshot` (no AI); stop it first.
+
+### Start SoulCam — adaptive test (person + hand, hand priority)
+Test-only policy:
+- When hand exists: track hand and disable person slot inference.
+- When no hand for N frames: fallback to person and re-enable person slot.
+
+```bash
+cd ~/SoulCam
+sudo systemctl stop soulcam
+sudo ./build/soulcam --ai \
+  --model /home/ubuntu/SoulCam/YoloV8-NPU/rk3566/yolov8n.rknn \
+  --model-weight 1 \
+  --model2 /home/ubuntu/models/hand_yolov8n_rk3566_i8_20260301.rknn \
+  --model2-conf 0.10 \
+  --model2-weight 1 \
+  --conf 0.25 -v \
+  --weighted-scheduler \
+  --max-models-per-frame 1 \
+  --test-adaptive-hand-person \
+  --test-hand-slot 1 \
+  --test-person-slot 0 \
+  --test-weight-high 10 \
+  --test-weight-low 1 \
+  --test-no-hand-frames 8
+```
+
+> Do not pass `--labels hand` in this dual-model test; that flag applies to the
+> primary model (slot 0, usually person) and can confuse labels/logic.
+
+### Runtime debug — model scheduler and resource overhead
+Using control socket with `socat`:
+```bash
+echo '{"cmd":"debug_models"}' | socat - UNIX-SENDTO:/tmp/soulcam_ctrl.sock
+```
+
+Python fallback (if `socat` is missing):
+```bash
+python3 -c "import socket; s=socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM); s.sendto(b'{\"cmd\":\"debug_models\"}', '/tmp/soulcam_ctrl.sock')"
+```
+
+### Runtime control examples (model list / add with weight)
+```bash
+echo '{"cmd":"list_models"}' | socat - UNIX-SENDTO:/tmp/soulcam_ctrl.sock
+echo '{"cmd":"add_model","path":"/home/ubuntu/models/extra.rknn","skip":2,"weight":1}' | socat - UNIX-SENDTO:/tmp/soulcam_ctrl.sock
+echo '{"cmd":"enable_model","slot":1,"enable":false}' | socat - UNIX-SENDTO:/tmp/soulcam_ctrl.sock
+```
 
 ### Run Universal Tracker — person tracking (default)
 ```bash
